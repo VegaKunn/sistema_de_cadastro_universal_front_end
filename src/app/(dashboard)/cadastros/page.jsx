@@ -21,7 +21,7 @@ export default function CadastrosPage() {
                 background: "#fff",
                 padding: 20,
                 borderRadius: 8,
-                width: 200,
+                width: 250,
                 cursor: "pointer",
                 boxShadow: "0 0 5px rgba(0,0,0,0.1)",
               }}
