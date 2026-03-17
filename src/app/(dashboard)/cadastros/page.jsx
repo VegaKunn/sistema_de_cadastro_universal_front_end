@@ -1,51 +1,56 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import Link from "next/link";
+import { api } from "@/utils/api";
 
 export default function CadastrosPage() {
-  const tipos = [
-    { nome: "Alimentos", slug: "alimentos" },
-    { nome: "Produtos Manufaturados", slug: "produtos" },
-    { nome: "Funcionários", slug: "funcionarios" },
-  ];
+  const [categorias, setCategorias] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    async function fetchCategorias() {
+      try {
+        const res = await fetch(api.categorias.listar);
+
+        const data = await res.json();
+
+        setCategorias(data);
+      } catch (err) {
+        console.log("Erro ao buscar categorias", err);
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    fetchCategorias();
+  }, []);
+
+  if (loading) return <p>Carregando categorias...</p>;
 
   return (
     <div>
       <h1>Tipos de Cadastro</h1>
 
       <div style={{ display: "flex", gap: 20, marginTop: 20 }}>
-        {tipos.map((tipo) => (
-          <Link key={tipo.slug} href={`/cadastros/${tipo.slug}`}>
+        {categorias.map((cat) => (
+          <Link key={cat.id} href={`/cadastros/${cat.slug}`}>
             <div
               style={{
                 background: "#fff",
                 padding: 20,
                 borderRadius: 8,
-                width: 250,
+                width: 220,
                 cursor: "pointer",
                 boxShadow: "0 0 5px rgba(0,0,0,0.1)",
               }}
             >
-              <h3>{tipo.nome}</h3>
-              <p>Acessar</p>
+              <h3>{cat.nome}</h3>
+              <p>Ver registros</p>
             </div>
           </Link>
         ))}
       </div>
-
-      <button
-        style={{
-          marginTop: 30,
-          padding: "10px 20px",
-          background: "#111",
-          color: "#fff",
-          border: "none",
-          borderRadius: 6,
-          cursor: "pointer",
-        }}
-      >
-        + Novo Tipo de Cadastro
-      </button>
     </div>
   );
 }
