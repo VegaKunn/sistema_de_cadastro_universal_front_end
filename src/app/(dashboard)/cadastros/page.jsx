@@ -58,9 +58,7 @@ export default function CadastrosPage() {
       </div>
 
       <button
-        onClick={() =>
-          (window.location.href = "/configuracoes/categorias/novo")
-        }
+        onClick={() => (window.location.href = "criar_categorias")}
         style={{
           marginTop: 30,
           padding: "10px 20px",
