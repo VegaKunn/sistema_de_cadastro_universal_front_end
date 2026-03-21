@@ -18,29 +18,40 @@ export default function ListagemCadastrosPage() {
     async function carregarDados() {
       try {
         const resCat = await fetch(api.categorias.listar);
+        //   console.log(resCat);
+
         const categorias = await resCat.json();
+        //     console.log(categorias);
 
         const cat = categorias.find((c) => c.slug === slug);
+        //      console.log(cat);
 
         if (!cat) {
           setLoading(false);
           return;
         }
-
         setCategoria(cat);
+        console.log(cat);
 
-        const resCampos = await fetch(api.campos.listarPorCategoria(cat.id));
+        const resCampos = await fetch(api.campos.criar);
+
+        console.log(resCampos);
+
         setCampos(await resCampos.json());
 
+        console.log(resCampos);
+
         const resReg = await fetch(api.registros.listarPorCategoria(cat.id));
+        console.log(resReg);
         const registrosData = await resReg.json();
+        console.log(registrosData);
+        // return;
+        // const convertidos = registrosData.map((r) => ({
+        //   ...r,
+        //   dados: JSON.parse(r.dadosJson),
+        // }));
 
-        const convertidos = registrosData.map((r) => ({
-          ...r,
-          dados: JSON.parse(r.dadosJson),
-        }));
-
-        setRegistros(convertidos);
+        setRegistros(registrosData);
       } catch (err) {
         console.error(err);
       } finally {
@@ -108,29 +119,84 @@ export default function ListagemCadastrosPage() {
             <table className="w-full text-sm">
               <thead className="bg-gray-100 text-gray-600">
                 <tr>
-                  {campos.map((c) => (
-                    <th key={c.id} className="px-4 py-3 text-left font-medium">
-                      {c.label}
+                  {/* Cabeçalho automático */}
+                  {registros && registros.length > 0 ? (
+                    Object.keys({
+                      ...registros[0],
+                      ...(registros[0].dadosJson || {}),
+                    })
+                      .filter((chave) => chave !== "dadosJson") // opcional: esconder dadosJson cru
+                      .map((chave) => (
+                        <th
+                          key={chave}
+                          className="px-4 py-3 text-left font-medium"
+                        >
+                          {chave}
+                        </th>
+                      ))
+                  ) : (
+                    <th className="px-4 py-3 text-left font-medium">
+                      Nenhum dado
                     </th>
-                  ))}
+                  )}
                 </tr>
               </thead>
 
               <tbody>
-                {registros.map((r, i) => (
-                  <tr
-                    key={r.id}
-                    className={`border-t transition hover:bg-gray-50 ${
-                      i % 2 === 0 ? "bg-white" : "bg-gray-50/50"
-                    }`}
-                  >
-                    {campos.map((c) => (
-                      <td key={c.id} className="px-4 py-3 text-gray-700">
-                        {renderValor(r.dados[c.nome])}
-                      </td>
-                    ))}
+                {Array.isArray(registros) && registros.length > 0 ? (
+                  registros.map((r, i) => {
+                    if (!r || typeof r !== "object") return null;
+
+                    const dadosCompletos = {
+                      ...r,
+                      ...(r.dadosJson && typeof r.dadosJson === "object"
+                        ? r.dadosJson
+                        : {}),
+                    };
+
+                    return (
+                      <tr
+                        key={r.id ?? i}
+                        className={`border-t transition hover:bg-gray-50 ${
+                          i % 2 === 0 ? "bg-white" : "bg-gray-50/50"
+                        }`}
+                      >
+                        {Object.entries(dadosCompletos)
+                          .filter(([chave]) => chave !== "dadosJson") // opcional
+                          .map(([chave, valor], ci) => {
+                            let valorFinal;
+                            try {
+                              valorFinal =
+                                typeof renderValor === "function"
+                                  ? renderValor(valor ?? "-")
+                                  : (valor ?? "-");
+                            } catch (e) {
+                              console.error("Erro renderValor:", e);
+                              valorFinal = "-";
+                            }
+
+                            return (
+                              <td
+                                key={`${chave}-${ci}`}
+                                className="px-4 py-3 text-gray-700"
+                              >
+                                {String(valorFinal)}
+                              </td>
+                            );
+                          })}
+                      </tr>
+                    );
+                  })
+                ) : (
+                  <tr>
+                    <td
+                      className="px-4 py-3 text-gray-400 italic"
+                      colSpan={100}
+                    >
+                      Nenhum registro encontrado
+                    </td>
                   </tr>
-                ))}
+                )}
               </tbody>
             </table>
           </div>

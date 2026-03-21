@@ -12,6 +12,7 @@ export default function CadastrosPage() {
     async function fetchCategorias() {
       try {
         const res = await fetch(api.categorias.listar);
+        console.log(res);
         const data = await res.json();
         setCategorias(data);
       } catch (err) {

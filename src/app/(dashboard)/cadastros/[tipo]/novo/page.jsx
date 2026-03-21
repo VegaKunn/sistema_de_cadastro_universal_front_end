@@ -9,9 +9,7 @@ export default function NovoCadastroPage() {
   const router = useRouter();
   const slug = params.tipo;
 
-  // Estados
   const [categoria, setCategoria] = useState(null);
-  const [campos, setCampos] = useState([]);
   const [form, setForm] = useState({});
   const [loading, setLoading] = useState(true);
   const [issubmitting, setIsSubmitting] = useState(false);
@@ -19,19 +17,23 @@ export default function NovoCadastroPage() {
   useEffect(() => {
     async function carregar() {
       try {
+        setLoading(true);
+
+        // Buscar categoria
         const resCat = await fetch(api.categorias.listar);
         const cats = await resCat.json();
         const cat = cats.find((c) => c.slug === slug);
-
         if (!cat) return;
-
         setCategoria(cat);
-
-        const resCampos = await fetch(api.campos.listarPorCategoria(cat.id));
-        const camposData = await resCampos.json();
-        setCampos(camposData);
+        console.log(cat.campos);
+        // Inicializar form com todos os campos
+        const formInicial = {};
+        (cat.campos || []).forEach((campo) => {
+          formInicial[campo.nome] = campo.tipo === "imagem" ? null : ""; // imagem começa null
+        });
+        setForm(formInicial);
       } catch (err) {
-        console.error("Erro ao carregar dados:", err);
+        console.error("Erro ao carregar categoria:", err);
       } finally {
         setLoading(false);
       }
@@ -40,30 +42,44 @@ export default function NovoCadastroPage() {
     carregar();
   }, [slug]);
 
-  // Handler simplificado e genérico
   const handleChange = (e) => {
-    const { name, value } = e.target;
-    setForm((prev) => ({ ...prev, [name]: value }));
+    const { name, value, type, files } = e.target;
+
+    if (type === "file") {
+      setForm((prev) => ({ ...prev, [name]: files[0] || null }));
+    } else {
+      setForm((prev) => ({ ...prev, [name]: value }));
+    }
   };
 
-  async function handleSubmit(e) {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     setIsSubmitting(true);
 
     try {
+      const formData = new FormData();
+      formData.append("categoriaId", categoria.id);
+
+      // Adiciona todos os campos no FormData
+      Object.entries(form).forEach(([key, value]) => {
+        if (value instanceof File) {
+          formData.append(key, value);
+        } else {
+          formData.append(key, value);
+        }
+      });
+
       const response = await fetch(api.registros.criar, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          categoriaId: categoria.id,
-          dados: form,
-        }),
+        body: formData,
       });
 
       if (response.ok) {
         alert("Cadastro realizado com sucesso!");
         router.push(`/cadastros/${slug}`);
       } else {
+        const errText = await response.text();
+        console.error("Erro ao salvar:", errText);
         alert("Erro ao salvar. Verifique os dados.");
       }
     } catch (err) {
@@ -72,9 +88,8 @@ export default function NovoCadastroPage() {
     } finally {
       setIsSubmitting(false);
     }
-  }
+  };
 
-  // Estados de interface
   if (loading)
     return <div style={{ padding: 20 }}>Carregando formulário...</div>;
   if (!categoria)
@@ -94,44 +109,163 @@ export default function NovoCadastroPage() {
           background: "#fff",
           padding: "30px",
           borderRadius: "12px",
-          maxWidth: "450px",
+          maxWidth: "500px",
           boxShadow: "0 4px 15px rgba(0,0,0,0.08)",
           border: "1px solid #eee",
         }}
       >
-        {campos.map((campo) => (
-          <div key={campo.id} style={{ marginBottom: 20 }}>
-            <label
+        {(categoria.campos || []).map((campo) => {
+          let inputElement = null;
+
+          // Renderização condicional baseada no tipo do campo
+          switch (campo.tipo) {
+            case "texto":
+              inputElement = (
+                <input
+                  type="text"
+                  name={campo.nome}
+                  value={form[campo.nome] || ""}
+                  onChange={handleChange}
+                  style={inputStyle}
+                  required={campo.pivot?.obrigatorio}
+                />
+              );
+              break;
+
+            case "numero":
+              inputElement = (
+                <input
+                  type="number"
+                  name={campo.nome}
+                  value={form[campo.nome] || ""}
+                  onChange={handleChange}
+                  style={inputStyle}
+                  required={campo.pivot?.obrigatorio}
+                />
+              );
+              break;
+
+            case "decimal":
+              inputElement = (
+                <input
+                  type="number"
+                  step="0.01"
+                  name={campo.nome}
+                  value={form[campo.nome] || ""}
+                  onChange={handleChange}
+                  style={inputStyle}
+                  required={campo.pivot?.obrigatorio}
+                />
+              );
+              break;
+
+            case "data":
+              inputElement = (
+                <input
+                  type="date"
+                  name={campo.nome}
+                  value={form[campo.nome] || ""}
+                  onChange={handleChange}
+                  style={inputStyle}
+                  required={campo.pivot?.obrigatorio}
+                />
+              );
+              break;
+
+            case "checkbox":
+              inputElement = (
+                <input
+                  type="checkbox"
+                  name={campo.nome}
+                  checked={!!form[campo.nome]} // Checkbox usa checked
+                  onChange={(e) => {
+                    // Pequeno ajuste para o handleChange lidar com booleanos
+                    handleChange({
+                      target: {
+                        name: campo.nome,
+                        value: e.target.checked,
+                      },
+                    });
+                  }}
+                />
+              );
+              break;
+
+            case "select":
+              inputElement = (
+                <select
+                  name={campo.nome}
+                  value={form[campo.nome] || ""}
+                  onChange={handleChange}
+                  style={inputStyle}
+                  required={campo.pivot?.obrigatorio}
+                >
+                  <option value="">Selecione...</option>
+                  {(campo.opcoes || []).map((opcao) => (
+                    <option key={opcao} value={opcao}>
+                      {opcao}
+                    </option>
+                  ))}
+                </select>
+              );
+              break;
+
+            case "imagem":
+              inputElement = (
+                <input
+                  type="file"
+                  name={campo.nome}
+                  accept="image/*"
+                  onChange={(e) => {
+                    // Para arquivos, passamos o arquivo inteiro
+                    handleChange({
+                      target: {
+                        name: campo.nome,
+                        value: e.target.files[0],
+                      },
+                    });
+                  }}
+                  required={campo.pivot?.obrigatorio}
+                />
+              );
+              break;
+
+            default:
+              inputElement = (
+                <input
+                  type="text"
+                  name={campo.nome}
+                  value={form[campo.nome] || ""}
+                  onChange={handleChange}
+                  style={inputStyle}
+                />
+              );
+          }
+
+          return (
+            <div
+              key={campo.id}
               style={{
-                display: "block",
-                marginBottom: 8,
-                fontWeight: "600",
-                fontSize: "14px",
-                color: "#333",
+                marginBottom: 20,
+                display: campo.tipo === "checkbox" ? "flex" : "block",
+                alignItems: "center",
               }}
             >
-              {campo.label}
-            </label>
-
-            {campo.tipo === "textarea" ? (
-              <textarea
-                name={campo.nome}
-                required
-                onChange={handleChange}
-                style={inputStyle}
-                rows={4}
-              />
-            ) : (
-              <input
-                type={campo.tipo || "text"}
-                name={campo.nome}
-                required
-                onChange={handleChange}
-                style={inputStyle}
-              />
-            )}
-          </div>
-        ))}
+              <label
+                style={{
+                  ...labelStyle,
+                  marginRight: campo.tipo === "checkbox" ? 10 : 0,
+                }}
+              >
+                {campo.label}
+                {campo.pivot?.obrigatorio && (
+                  <span style={{ color: "red" }}> *</span>
+                )}
+              </label>
+              {inputElement}
+            </div>
+          );
+        })}
 
         <button
           type="submit"
@@ -149,14 +283,22 @@ export default function NovoCadastroPage() {
   );
 }
 
-// Objetos de estilo para manter o JSX limpo
+// Estilos
+const labelStyle = {
+  display: "block",
+  marginBottom: 8,
+  fontWeight: "600",
+  fontSize: "14px",
+  color: "#333",
+};
+
 const inputStyle = {
   width: "100%",
   padding: "10px",
   borderRadius: "6px",
   border: "1px solid #ccc",
   fontSize: "16px",
-  boxSizing: "border-box", // Evita que o padding "estoure" a largura
+  boxSizing: "border-box",
 };
 
 const buttonStyle = {
