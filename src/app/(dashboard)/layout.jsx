@@ -7,9 +7,10 @@ export default function DashboardLayout({ children }) {
   const pathname = usePathname();
 
   const menu = [
-    { name: "Dashboard", path: "/dashboard" },
-    { name: "Cadastros", path: "/cadastros" },
-    { name: "Configurações", path: "/configuracoes" },
+    { name: "Dashboard", path: "/cadastros" },
+    { name: "Vendas", path: "/vendas" },
+    { name: "Apresentação", path: "/apresentacao" },
+    { name: "Participantes", path: "/participantes" },
   ];
 
   return (
