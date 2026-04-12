@@ -13,7 +13,7 @@ export default function DashboardLayout({ children }) {
   ];
 
   return (
-    <div style={{ display: "flex", height: "100vh", fontFamily: "Arial" }}>
+    <div style={{ display: "flex", height: "100vh", overflow: "hidden" }}>
       {/* SIDEBAR */}
       <aside
         style={{
@@ -21,6 +21,8 @@ export default function DashboardLayout({ children }) {
           background: "#111",
           color: "#fff",
           padding: 20,
+          display: "flex",
+          flexDirection: "column",
         }}
       >
         <h2 style={{ marginBottom: 30 }}>Sistema</h2>
@@ -43,11 +45,19 @@ export default function DashboardLayout({ children }) {
       </aside>
 
       {/* CONTEÚDO */}
-      <main style={{ flex: 1, background: "#f5f5f5" }}>
+      <main
+        style={{
+          flex: 1,
+          display: "flex",
+          flexDirection: "column",
+          height: "100vh",
+        }}
+      >
         {/* TOPBAR */}
         <div
           style={{
             height: 60,
+            minHeight: 60,
             background: "#fff",
             borderBottom: "1px solid #ddd",
             display: "flex",
@@ -59,8 +69,17 @@ export default function DashboardLayout({ children }) {
           Sistema de Cadastro Universal
         </div>
 
-        {/* PAGE */}
-        <div style={{ padding: 20 }}>{children}</div>
+        {/* ÁREA COM SCROLL */}
+        <div
+          style={{
+            flex: 1,
+            overflowY: "auto",
+            padding: 20,
+            background: "#f5f5f5",
+          }}
+        >
+          {children}
+        </div>
       </main>
     </div>
   );
